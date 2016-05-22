@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2013 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -78,6 +78,8 @@ import org.xml.sax.InputSource;
  *
  */
 public class XMLHandler {
+  //TODO Change impl for some standard XML processing (like StAX, for example) because ESAPI has charset processing issues.
+
   private static XMLHandlerCache cache = XMLHandlerCache.getInstance();
   private static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat( ValueMeta.DEFAULT_DATE_FORMAT_MASK );
   private static final SimpleDateFormat simpleTimeStampFormat = new SimpleDateFormat( ValueMeta.DEFAULT_TIMESTAMP_FORMAT_MASK );
@@ -92,7 +94,7 @@ public class XMLHandler {
 
   /**
    * The header string to specify encoding in an XML file
-   *
+   * 
    * @param encoding
    *          The desired encoding to use in the XML file
    * @return The XML header.
@@ -454,11 +456,9 @@ public class XMLHandler {
       lastChildNr++; // we left off at the previouso one, so continue with the next.
     }
 
-    for ( int i = lastChildNr; i < children.getLength(); i++ ) // Try all children
-    {
+    for ( int i = lastChildNr; i < children.getLength(); i++ ) { // Try all children
       childnode = children.item( i );
-      if ( childnode.getNodeName().equalsIgnoreCase( tag ) ) // We found the right tag
-      {
+      if ( childnode.getNodeName().equalsIgnoreCase( tag ) ) { // We found the right tag
         if ( count == nr ) {
           if ( useCache ) {
             cache.storeCache( entry, i );
@@ -769,9 +769,8 @@ public class XMLHandler {
    * @return The XML String for the tag.
    */
   public static String addTagValue( String tag, String val, boolean cr, String... attributes ) {
-    StringBuffer value;
+    StringBuilder value = new StringBuilder( "<" );
     Encoder encoder = ESAPI.encoder();
-    value = new StringBuffer( "<" );
     value.append( tag );
 
     for ( int i = 0; i < attributes.length; i += 2 ) {
@@ -795,20 +794,6 @@ public class XMLHandler {
     }
 
     return value.toString();
-  }
-
-  /**
-   * Take the characters from string val and append them to the value stringbuffer In case a character is not allowed in
-   * XML, we convert it to an XML code
-   *
-   * @param value
-   *          the stringbuffer to append to
-   * @param string
-   *          the string to "encode"
-   */
-  public static void appendReplacedChars( StringBuffer value, String string ) {
-    Encoder encoder = ESAPI.encoder();
-    value.append( encoder.encodeForXML( string ) );
   }
 
   public static void appendReplacedChars( StringBuilder value, String string ) {

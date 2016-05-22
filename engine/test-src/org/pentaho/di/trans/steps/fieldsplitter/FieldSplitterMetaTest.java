@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -26,10 +26,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import static org.junit.Assert.*;
 import org.pentaho.di.core.KettleEnvironment;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.row.value.ValueMetaBase;
@@ -101,7 +101,8 @@ public class FieldSplitterMetaTest {
     fieldLoadSaveValidatorAttributeMap.put( "idrem",
       new PrimitiveBooleanArrayLoadSaveValidator( new BooleanLoadSaveValidator(), 50 ) );
     fieldLoadSaveValidatorAttributeMap.put( "type",
-      new PrimitiveIntArrayLoadSaveValidator( new FieldTypeFieldLoadSaveTester(), 50 ) );
+      new PrimitiveIntArrayLoadSaveValidator(
+        new IntLoadSaveValidator( ValueMetaFactory.getAllValueMetaNames().length ), 50 ) );
     fieldLoadSaveValidatorAttributeMap.put( "format",
       new ArrayLoadSaveValidator<String>( new StringLoadSaveValidator(), 50 ) );
     fieldLoadSaveValidatorAttributeMap.put( "group",
@@ -119,7 +120,8 @@ public class FieldSplitterMetaTest {
     fieldLoadSaveValidatorAttributeMap.put( "ifnull",
       new ArrayLoadSaveValidator<String>( new StringLoadSaveValidator(), 50 ) );
     fieldLoadSaveValidatorAttributeMap.put( "trimtype",
-      new PrimitiveIntArrayLoadSaveValidator( new TrimTypeFieldLoadSaveValidator(), 50 ) );
+      new PrimitiveIntArrayLoadSaveValidator(
+        new IntLoadSaveValidator( ValueMetaBase.getTrimTypeCodes().length ), 50 ) );
 
     LoadSaveTester loadSaveTester = new LoadSaveTester( FieldSplitterMeta.class, attributes, getterMap, setterMap,
       fieldLoadSaveValidatorAttributeMap, new HashMap<String, FieldLoadSaveValidator<?>>() );
@@ -128,27 +130,39 @@ public class FieldSplitterMetaTest {
     loadSaveTester.testXmlRoundTrip();
   }
 
-  public class TrimTypeFieldLoadSaveValidator implements FieldLoadSaveValidator<Integer> {
-    @Override
-    public Integer getTestObject() {
-      return new Random().nextInt( ValueMetaBase.getTrimTypeCodes().length );
-    }
-
-    @Override
-    public boolean validateTestObject( Integer testObject, Object actual ) {
-      return testObject.equals( (Integer) actual );
-    }
+  @Test
+  public void cloneTest() throws Exception {
+    FieldSplitterMeta meta = new FieldSplitterMeta();
+    meta.allocate( 2 );
+    meta.setFieldName( new String[] { "aa", "bb" } );
+    meta.setFieldID( new String[] { "cc", "dd" } );
+    meta.setFieldFormat( new String[] { "ee", "ff" } );
+    meta.setFieldGroup( new String[] { "gg", "hh" } );
+    meta.setFieldDecimal( new String[] { "ii", "jj" } );
+    meta.setFieldCurrency( new String[] { "kk", "ll" } );
+    meta.setFieldLength( new int[] { 25, 75 } );
+    meta.setFieldNullIf( new String[] { "oo", "pp" } );
+    meta.setFieldIfNull( new String[] { "qq", "rr" } );
+    meta.setFieldRemoveID( new boolean[] { false, true } );
+    meta.setFieldPrecision( new int[] { 10, 50 } );
+    meta.setFieldTrimType( new int[] { 3, 5 } );
+    meta.setFieldType( new int[] { 2, 4 } );
+    FieldSplitterMeta aClone = (FieldSplitterMeta) meta.clone();
+    assertFalse( aClone == meta );
+    assertTrue( Arrays.equals( meta.getFieldName(), aClone.getFieldName() ) );
+    assertTrue( Arrays.equals( meta.getFieldID(), aClone.getFieldID() ) );
+    assertTrue( Arrays.equals( meta.getFieldFormat(), aClone.getFieldFormat() ) );
+    assertTrue( Arrays.equals( meta.getFieldGroup(), aClone.getFieldGroup() ) );
+    assertTrue( Arrays.equals( meta.getFieldDecimal(), aClone.getFieldDecimal() ) );
+    assertTrue( Arrays.equals( meta.getFieldCurrency(), aClone.getFieldCurrency() ) );
+    assertTrue( Arrays.equals( meta.getFieldLength(), aClone.getFieldLength() ) );
+    assertTrue( Arrays.equals( meta.getFieldNullIf(), aClone.getFieldNullIf() ) );
+    assertTrue( Arrays.equals( meta.getFieldIfNull(), aClone.getFieldIfNull() ) );
+    assertTrue( Arrays.equals( meta.getFieldRemoveID(), aClone.getFieldRemoveID() ) );
+    assertTrue( Arrays.equals( meta.getFieldPrecision(), aClone.getFieldPrecision() ) );
+    assertTrue( Arrays.equals( meta.getFieldTrimType(), aClone.getFieldTrimType() ) );
+    assertTrue( Arrays.equals( meta.getFieldType(), aClone.getFieldType() ) );
+    assertEquals( meta.getXML(), aClone.getXML() );
   }
 
-  public class FieldTypeFieldLoadSaveTester implements FieldLoadSaveValidator<Integer> {
-    @Override
-    public Integer getTestObject() {
-      return new Random().nextInt( ValueMetaFactory.getAllValueMetaNames().length );
-    }
-
-    @Override
-    public boolean validateTestObject( Integer testObject, Object actual ) {
-      return testObject.equals( (Integer) actual );
-    }
-  }
 }

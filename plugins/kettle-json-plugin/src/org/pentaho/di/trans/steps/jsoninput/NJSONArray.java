@@ -25,6 +25,7 @@ package org.pentaho.di.trans.steps.jsoninput;
 import org.json.simple.JSONArray;
 import org.pentaho.di.core.exception.KettleException;
 
+@Deprecated
 public class NJSONArray {
 
   private JSONArray a;
@@ -37,7 +38,7 @@ public class NJSONArray {
 
   public NJSONArray( JSONArray ja ) throws KettleException {
     this.a = ja;
-    setNull( false );
+    setNull( ja == null );
   }
 
   public void setNull( boolean value ) {

@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2013 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -101,7 +101,7 @@ import org.pentaho.di.trans.TransMeta;
  *
  */
 public class KettleDatabaseRepository extends KettleDatabaseRepositoryBase {
-  // private static Class<?> PKG = Repository.class; // for i18n purposes, needed by Translator2!! 
+  // private static Class<?> PKG = Repository.class; // for i18n purposes, needed by Translator2!!
 
   public KettleDatabaseRepositoryTransDelegate transDelegate;
   public KettleDatabaseRepositoryJobDelegate jobDelegate;
@@ -213,6 +213,69 @@ public class KettleDatabaseRepository extends KettleDatabaseRepositoryBase {
     }
   }
 
+  @Override public boolean test() {
+    try {
+      getDatabase().connect();
+    } catch ( KettleDatabaseException kde ) {
+      return false;
+    }
+    return true;
+  }
+
+  @Override public void create() {
+    if ( repositoryMeta.getConnection() != null ) {
+      if ( repositoryMeta.getConnection().getAccessType() == DatabaseMeta.TYPE_ACCESS_ODBC ) {
+        // This will change in a future story
+        log.logDebug( "ODBC type is not advised for repository use" );
+      }
+
+      try {
+        if ( !getDatabaseMeta().getDatabaseInterface().supportsRepository() ) {
+          // show error about not being valid
+          log.logError( "This database type does not support being a repository" );
+        }
+
+        connectionDelegate.connect( true, true );
+        boolean upgrade = false;
+
+        try {
+          String userTableName = getDatabaseMeta().quoteField( KettleDatabaseRepository.TABLE_R_USER );
+          upgrade = getDatabase().checkTableExists( userTableName );
+          if ( upgrade ) {
+            // This will change in future story
+            log.logDebug( "Database upgrade will now take place" );
+          }
+        } catch ( KettleDatabaseException dbe ) {
+          // Roll back the connection: this is required for certain databases like PGSQL
+          // Otherwise we can't execute any other DDL statement.
+          //
+          rollback();
+
+          // Don't show an error anymore, just go ahead and propose to create the repository!
+        }
+
+        String pwd = "admin";
+        if ( pwd != null ) {
+          try {
+            // authenticate as admin before upgrade
+            // disconnect before connecting, we connected above already
+            //
+            disconnect();
+            connect( "admin", pwd, true );
+          } catch ( KettleException e ) {
+            log.logError( "Invalid user credentials" );
+          }
+        }
+
+        createRepositorySchema( null, upgrade, new ArrayList<String>(), false );
+
+        disconnect();
+      } catch ( KettleException ke ) {
+        log.logError( "An error has occurred creating a repository" );
+      }
+    }
+  }
+
   /**
    * Add the repository service to the map and add the interface to the list
    *
@@ -293,7 +356,7 @@ public class KettleDatabaseRepository extends KettleDatabaseRepositoryBase {
 
   public ObjectId renameTransformation( ObjectId id_transformation, RepositoryDirectoryInterface newDir,
       String newName ) throws KettleException {
-    return renameTransformation(id_transformation, null, newDir, newName );
+    return renameTransformation( id_transformation, null, newDir, newName );
   }
 
   public synchronized ObjectId renameTransformation( ObjectId id_transformation, String versionComment,
@@ -341,7 +404,7 @@ public class KettleDatabaseRepository extends KettleDatabaseRepositoryBase {
 
   public ObjectId renameJob( ObjectId id_job, RepositoryDirectoryInterface dir, String newname )
     throws KettleException {
-    return renameJob(id_job, null, dir, newname );
+    return renameJob( id_job, null, dir, newname );
   }
 
   public synchronized ObjectId renameJob( ObjectId id_job, String versionComment, RepositoryDirectoryInterface dir,
@@ -1373,7 +1436,7 @@ public class KettleDatabaseRepository extends KettleDatabaseRepositoryBase {
         + quote( KettleDatabaseRepository.FIELD_TRANS_SLAVE_ID_SLAVE ) + " = ? ", id_slave );
       commit();
     } else {
-      StringBuffer message = new StringBuffer();
+      StringBuilder message = new StringBuilder( 100 );
 
       if ( transList.length > 0 ) {
         message.append( "Slave used by the following transformations:" ).append( Const.CR );

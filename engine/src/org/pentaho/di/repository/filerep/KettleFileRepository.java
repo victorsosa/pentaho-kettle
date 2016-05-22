@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2013 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -131,6 +131,10 @@ public class KettleFileRepository extends AbstractRepository {
       this.metaStore.setDescription( this.repositoryMeta.getDescription() );
     }
     connected = true;
+  }
+
+  @Override public boolean test() {
+    return new File( this.repositoryMeta.getBaseDirectory() ).exists();
   }
 
   public void disconnect() {
@@ -1068,8 +1072,7 @@ public class KettleFileRepository extends AbstractRepository {
 
         DatabaseMeta check = transMeta.findDatabase( databaseMeta.getName() ); // Check if there already is one in the
                                                                                // transformation
-        if ( check == null || overWriteShared ) // We only add, never overwrite database connections.
-        {
+        if ( check == null || overWriteShared ) { // We only add, never overwrite database connections.
           if ( databaseMeta.getName() != null ) {
             transMeta.addOrReplaceDatabase( databaseMeta );
             if ( !overWriteShared ) {

@@ -1,5 +1,5 @@
 /*!
- * Copyright 2010 - 2015 Pentaho Corporation.  All rights reserved.
+ * Copyright 2010 - 2016 Pentaho Corporation.  All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import java.util.concurrent.Future;
 import javax.xml.ws.WebServiceException;
 
 import org.apache.commons.lang.BooleanUtils;
+import org.eclipse.swt.widgets.Display;
 import org.pentaho.di.core.encryption.Encr;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleSecurityException;
@@ -43,6 +44,7 @@ import org.pentaho.di.ui.repository.pur.services.ILockService;
 import org.pentaho.di.ui.repository.pur.services.IRevisionService;
 import org.pentaho.di.ui.repository.pur.services.IRoleSupportSecurityManager;
 import org.pentaho.di.ui.repository.pur.services.ITrashService;
+import org.pentaho.di.ui.spoon.SpoonPerspectiveManager;
 import org.pentaho.platform.api.repository2.unified.IUnifiedRepository;
 import org.pentaho.platform.engine.core.system.PentahoSessionHolder;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
@@ -64,7 +66,10 @@ public class PurRepositoryConnector implements IRepositoryConnector {
   private ServiceManager serviceManager;
 
   public PurRepositoryConnector( PurRepository purRepository, PurRepositoryMeta repositoryMeta, RootRef rootRef ) {
-    log = new LogChannel( this );
+    log = new LogChannel( this.getClass().getSimpleName() );
+    if ( purRepository != null & purRepository.getLog() != null ) {
+      log.setLogLevel( purRepository.getLog().getLogLevel() );
+    }
     this.purRepository = purRepository;
     this.repositoryMeta = repositoryMeta;
     this.rootRef = rootRef;
@@ -113,6 +118,7 @@ public class PurRepositoryConnector implements IRepositoryConnector {
           user1 = new EEUserInfo();
           user1.setLogin( name );
           user1.setName( name );
+          user1.setPassword( decryptedPassword );
           result.setUnifiedRepository( PentahoSystem.get( IUnifiedRepository.class ) );
           result.setUser( user1 );
           result.setSuccess( true );
@@ -135,10 +141,27 @@ public class PurRepositoryConnector implements IRepositoryConnector {
         public Boolean call() throws Exception {
           // We need to add the service class in the list in the order of dependencies
           // IRoleSupportSecurityManager depends RepositorySecurityManager to be present
-          LogChannel.GENERAL.logBasic( "Creating security provider" );
+          if ( log.isBasic() ) {
+            log.logBasic( BaseMessages.getString( PKG, "PurRepositoryConnector.CreateServiceProvider.Start" ) );
+          }
           result.setSecurityProvider( new AbsSecurityProvider( purRepository, repositoryMeta, result.getUser(),
               serviceManager ) );
-          LogChannel.GENERAL.logBasic( "Security provider created" ); //$NON-NLS-1$
+          if ( log.isBasic() ) {
+            log.logBasic( BaseMessages.getString( PKG, "PurRepositoryConnector.CreateServiceProvider.End" ) ); //$NON-NLS-1$
+          }
+          boolean canSchedule = allowedActionsContains( (AbsSecurityProvider) result.getSecurityProvider(),
+            IAbsSecurityProvider.SCHEDULE_CONTENT_ACTION );
+          Display.getDefault().asyncExec( new Runnable() {
+            public void run() {
+              final String schedulePerspectiveId = "schedulerPerspective";
+              SpoonPerspectiveManager perspectiveManager = SpoonPerspectiveManager.getInstance();
+              if ( canSchedule ) {
+                perspectiveManager.showPerspective( schedulePerspectiveId );
+              } else {
+                perspectiveManager.hidePerspective( schedulePerspectiveId );
+              }
+            }
+          } );
           // If the user does not have access to administer security we do not
           // need to added them to the service list
           if ( allowedActionsContains( (AbsSecurityProvider) result.getSecurityProvider(),
@@ -161,11 +184,17 @@ public class PurRepositoryConnector implements IRepositoryConnector {
         public WebServiceException call() throws Exception {
           try {
             IUnifiedRepositoryJaxwsWebService repoWebService = null;
-            LogChannel.GENERAL.logBasic( "Creating repository web service" ); //$NON-NLS-1$
+            if ( log.isBasic() ) {
+              log.logBasic( BaseMessages.getString( PKG, "PurRepositoryConnector.CreateRepositoryWebService.Start" ) ); //$NON-NLS-1$
+            }
             repoWebService =
                 serviceManager.createService( username, decryptedPassword, IUnifiedRepositoryJaxwsWebService.class ); //$NON-NLS-1$
-            LogChannel.GENERAL.logBasic( "Repository web service created" ); //$NON-NLS-1$
-            LogChannel.GENERAL.logBasic( "Creating unified repository to web service adapter" ); //$NON-NLS-1$
+            if ( log.isBasic() ) {
+              log.logBasic( BaseMessages.getString( PKG, "PurRepositoryConnector.CreateRepositoryWebService.End" ) ); //$NON-NLS-1$
+            }
+            if ( log.isBasic() ) {
+              log.logBasic( BaseMessages.getString( PKG, "PurRepositoryConnector.CreateUnifiedRepositoryToWebServiceAdapter.Start" ) ); //$NON-NLS-1$
+            }
             result.setUnifiedRepository( new UnifiedRepositoryToWebServiceAdapter( repoWebService ) );
           } catch ( WebServiceException wse ) {
             return wse;
@@ -179,10 +208,14 @@ public class PurRepositoryConnector implements IRepositoryConnector {
         @Override
         public Exception call() throws Exception {
           try {
-            LogChannel.GENERAL.logBasic( "Creating repository sync web service" );
+            if ( log.isBasic() ) {
+              log.logBasic( BaseMessages.getString( PKG, "PurRepositoryConnector.CreateRepositorySyncWebService.Start" ) );
+            }
             IRepositorySyncWebService syncWebService =
                 serviceManager.createService( username, decryptedPassword, IRepositorySyncWebService.class ); //$NON-NLS-1$
-            LogChannel.GENERAL.logBasic( "Synchronizing repository web service" ); //$NON-NLS-1$
+            if ( log.isBasic() ) {
+              log.logBasic( BaseMessages.getString( PKG, "PurRepositoryConnector.CreateRepositorySyncWebService.Sync" ) ); //$NON-NLS-1$
+            }
             syncWebService.sync( repositoryMeta.getName(), repositoryMeta.getRepositoryLocation().getUrl() );
           } catch ( RepositorySyncException e ) {
             log.logError( e.getMessage(), e );
@@ -214,7 +247,9 @@ public class PurRepositoryConnector implements IRepositoryConnector {
 
       Boolean isAdmin = authorizationWebserviceFuture.get();
 
-      LogChannel.GENERAL.logBasic( "Registering security provider" );
+      if ( log.isBasic() ) {
+        log.logBasic( BaseMessages.getString( PKG, "PurRepositoryConnector.RegisterSecurityProvider.Start" ) );
+      }
       purRepositoryServiceRegistry.registerService( RepositorySecurityProvider.class, result.getSecurityProvider() );
       purRepositoryServiceRegistry.registerService( IAbsSecurityProvider.class, result.getSecurityProvider() );
       if ( isAdmin ) {
@@ -238,7 +273,9 @@ public class PurRepositoryConnector implements IRepositoryConnector {
       purRepositoryServiceRegistry.registerService( ILockService.class, new UnifiedRepositoryLockService( result
           .getUnifiedRepository() ) );
 
-      LogChannel.GENERAL.logBasic( "Repository services registered" );
+      if ( log.isBasic() ) {
+        log.logBasic( BaseMessages.getString( PKG, "PurRepositoryConnector.RepositoryServicesRegistered.End" ) );
+      }
 
       result.setSuccess( true );
     } catch ( NullPointerException npe ) {
@@ -254,10 +291,16 @@ public class PurRepositoryConnector implements IRepositoryConnector {
 
   @Override
   public synchronized void disconnect() {
+    SpoonPerspectiveManager perspectiveManager = SpoonPerspectiveManager.getInstance();
+    perspectiveManager.hidePerspective( "schedulerPerspective" );
     if ( serviceManager != null ) {
       serviceManager.close();
     }
     serviceManager = null;
+  }
+
+  public LogChannelInterface getLog() {
+    return log;
   }
 
   @Override

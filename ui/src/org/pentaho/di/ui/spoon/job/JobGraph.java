@@ -309,6 +309,7 @@ public class JobGraph extends AbstractGraph implements XulEventHandler, Redrawab
     this.log = spoon.getLog();
     this.spoon = spoon;
     this.jobMeta = jobMeta;
+    spoon.selectionFilter.setText( "" );
 
     this.props = PropsUI.getInstance();
     this.areaOwners = new ArrayList<AreaOwner>();
@@ -1404,9 +1405,21 @@ public class JobGraph extends AbstractGraph implements XulEventHandler, Redrawab
             MenuItem item1 = new MenuItem( menu, SWT.PUSH );
             item1.setText( BaseMessages.getString( PKG, "Spoon.Run.Run" ) );
             item1.setAccelerator( SWT.F9 );
+            item1.addSelectionListener( new SelectionAdapter() {
+              @Override
+              public void widgetSelected( SelectionEvent e1 ) {
+                runJob();
+              }
+            } );
             MenuItem item2 = new MenuItem( menu, SWT.PUSH );
             item2.setText( BaseMessages.getString( PKG, "Spoon.Run.RunOptions" ) );
             item2.setAccelerator( SWT.F8 );
+            item2.addSelectionListener( new SelectionAdapter() {
+              @Override
+              public void widgetSelected( SelectionEvent e2 ) {
+                runOptionsJob();
+              }
+            } );
 
             menu.setLocation( shell.getDisplay().map( mainComposite.getParent(), null, mainComposite.getLocation() ) );
             menu.setVisible( true );
@@ -1976,8 +1989,7 @@ public class JobGraph extends AbstractGraph implements XulEventHandler, Redrawab
             } else {
               miPopEvalUncond.setDisabled( false );
             }
-            if ( hi.getFromEntry().isStart() ||
-                hi.getToEntry().getEntry() instanceof JobEntryAbort ) {
+            if ( hi.getFromEntry().isStart() || hi.getToEntry().getEntry() instanceof JobEntryAbort ) {
               miFlipHop.setDisabled( true );
             } else {
               miFlipHop.setDisabled( false );
@@ -2273,7 +2285,7 @@ public class JobGraph extends AbstractGraph implements XulEventHandler, Redrawab
 
     // check the area owner list...
     //
-    StringBuffer tip = new StringBuffer();
+    StringBuilder tip = new StringBuilder();
     AreaOwner areaOwner = getVisibleAreaOwner( x, y );
     if ( areaOwner != null ) {
       JobEntryCopy jobEntryCopy;
@@ -3378,6 +3390,10 @@ public class JobGraph extends AbstractGraph implements XulEventHandler, Redrawab
 
   public void runJob() {
     spoon.runFile();
+  }
+
+  public void runOptionsJob() {
+    spoon.runOptionsFile();
   }
 
   public void getSQL() {

@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2013 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -31,6 +31,8 @@ import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.exception.KettleXMLException;
+import org.pentaho.di.core.injection.Injection;
+import org.pentaho.di.core.injection.InjectionSupported;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMeta;
@@ -53,22 +55,33 @@ import org.w3c.dom.Node;
 /*
  * Created on 05-aug-2003
  */
+@InjectionSupported( localizationPrefix = "GetVariable.Injection.", groups = { "FIELDS" } )
 public class GetVariableMeta extends BaseStepMeta implements StepMetaInterface {
   private static Class<?> PKG = GetVariableMeta.class; // for i18n purposes, needed by Translator2!!
 
+  @Injection( name = "FIELDNAME", group = "FIELDS" )
   private String[] fieldName;
+  @Injection( name = "VARIABLE", group = "FIELDS" )
   private String[] variableString;
 
+  @Injection( name = "FIELDTYPE", group = "FIELDS" )
   private int[] fieldType;
 
+  @Injection( name = "FIELDFORMAT", group = "FIELDS" )
   private String[] fieldFormat;
+  @Injection( name = "FIELDLENGTH", group = "FIELDS" )
   private int[] fieldLength;
+  @Injection( name = "FIELDPRECISION", group = "FIELDS" )
   private int[] fieldPrecision;
 
+  @Injection( name = "CURRENCY", group = "FIELDS" )
   private String[] currency;
+  @Injection( name = "DECIMAL", group = "FIELDS" )
   private String[] decimal;
+  @Injection( name = "GROUP", group = "FIELDS" )
   private String[] group;
 
+  @Injection( name = "TRIMTYPE", group = "FIELDS" )
   private int[] trimType;
 
   public GetVariableMeta() {
@@ -133,18 +146,16 @@ public class GetVariableMeta extends BaseStepMeta implements StepMetaInterface {
 
     retval.allocate( count );
 
-    for ( int i = 0; i < count; i++ ) {
-      retval.fieldName[i] = fieldName[i];
-      retval.variableString[i] = variableString[i];
-      retval.fieldType[i] = fieldType[i];
-      retval.fieldFormat[i] = fieldFormat[i];
-      retval.currency[i] = currency[i];
-      retval.decimal[i] = decimal[i];
-      retval.group[i] = group[i];
-      retval.fieldLength[i] = fieldLength[i];
-      retval.fieldPrecision[i] = fieldPrecision[i];
-      retval.trimType[i] = trimType[i];
-    }
+    System.arraycopy( fieldName, 0, retval.fieldName, 0, count );
+    System.arraycopy( variableString, 0, retval.variableString, 0, count );
+    System.arraycopy( fieldType, 0, retval.fieldType, 0, count );
+    System.arraycopy( fieldFormat, 0, retval.fieldFormat, 0, count );
+    System.arraycopy( currency, 0, retval.currency, 0, count );
+    System.arraycopy( decimal, 0, retval.decimal, 0, count );
+    System.arraycopy( group, 0, retval.group, 0, count );
+    System.arraycopy( fieldLength, 0, retval.fieldLength, 0, count );
+    System.arraycopy( fieldPrecision, 0, retval.fieldPrecision, 0, count );
+    System.arraycopy( trimType, 0, retval.trimType, 0, count );
 
     return retval;
   }
@@ -231,7 +242,7 @@ public class GetVariableMeta extends BaseStepMeta implements StepMetaInterface {
   }
 
   public String getXML() {
-    StringBuffer retval = new StringBuffer( 300 );
+    StringBuilder retval = new StringBuilder( 300 );
 
     retval.append( "    <fields>" ).append( Const.CR );
     for ( int i = 0; i < fieldName.length; i++ ) {

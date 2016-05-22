@@ -3,7 +3,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2015 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -1462,8 +1462,10 @@ public class Trans implements VariableSpace, NamedParams, HasLogChannelInterface
           badGuys.add( e );
         }
       }
-      // Signal for the the waitUntilFinished blocker...
-      transFinishedBlockingQueue.add( new Object() );
+      if ( transFinishedBlockingQueue != null ) {
+        // Signal for the the waitUntilFinished blocker...
+        transFinishedBlockingQueue.add( new Object() );
+      }
       if ( !badGuys.isEmpty() ) {
         // FIFO
         throw new KettleException( badGuys.get( 0 ) );
@@ -3070,7 +3072,7 @@ public class Trans implements VariableSpace, NamedParams, HasLogChannelInterface
 
     // See if there is a parent transformation. If so, print the name of the parent here as well...
     //
-    StringBuffer string = new StringBuffer();
+    StringBuilder string = new StringBuilder( 50 );
 
     // If we're running as a mapping, we get a reference to the calling (parent) transformation as well...
     //
@@ -5316,7 +5318,7 @@ public class Trans implements VariableSpace, NamedParams, HasLogChannelInterface
    * Sets encoding of HttpServletResponse according to System encoding.Check if system encoding is null or an empty and
    * set it to HttpServletResponse when not and writes error to log if null. Throw IllegalArgumentException if input
    * parameter is null.
-   * 
+   *
    * @param response
    *          the HttpServletResponse to set encoding, mayn't be null
    */

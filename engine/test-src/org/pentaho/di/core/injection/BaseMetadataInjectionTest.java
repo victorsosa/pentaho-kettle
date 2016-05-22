@@ -39,6 +39,7 @@ import org.pentaho.di.core.injection.bean.BeanInjectionInfo;
 import org.pentaho.di.core.injection.bean.BeanInjector;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.ValueMetaInterface;
+import org.pentaho.di.core.row.value.ValueMetaBase;
 import org.pentaho.di.core.row.value.ValueMetaBoolean;
 import org.pentaho.di.core.row.value.ValueMetaInteger;
 import org.pentaho.di.core.row.value.ValueMetaString;
@@ -171,6 +172,24 @@ public abstract class BaseMetadataInjectionTest<T> {
   }
 
   /**
+   * Check string-to-int property.
+   */
+  protected void checkStringToInt( String propertyName, IntGetter getter, String[] codes, int[] ids )
+    throws KettleException {
+    if ( codes.length != ids.length ) {
+      throw new RuntimeException( "Wrong codes/ids sizes" );
+    }
+    ValueMetaInterface valueMetaString = new ValueMetaString( "f" );
+
+    for ( int i = 0; i < codes.length; i++ ) {
+      injector.setProperty( meta, propertyName, setValue( valueMetaString, codes[i] ), "f" );
+      assertEquals( ids[i], getter.get() );
+    }
+
+    skipPropertyTest( propertyName );
+  }
+
+  /**
    * Check long property.
    */
   protected void check( String propertyName, LongGetter getter ) throws KettleException {
@@ -191,6 +210,14 @@ public abstract class BaseMetadataInjectionTest<T> {
     assertEquals( Long.MAX_VALUE, getter.get() );
 
     skipPropertyTest( propertyName );
+  }
+
+  public static int[] getTypeCodes( String[] typeNames ) {
+    int[] typeCodes = new int[typeNames.length];
+    for ( int i = 0; i < typeNames.length; i++ ) {
+      typeCodes[i] = ValueMetaBase.getType( typeNames[i] );
+    }
+    return typeCodes;
   }
 
   public interface BooleanGetter {

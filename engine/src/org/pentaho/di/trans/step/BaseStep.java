@@ -3,7 +3,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2013 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -781,10 +781,19 @@ public class BaseStep implements VariableSpace, StepInterface, LoggingObjectInte
       }
     }
 
-    for ( RemoteStep remoteStep : getRemoteInputSteps() ) {
-      remoteStep.cleanup();
+    List<RemoteStep> remoteInputSteps = getRemoteInputSteps();
+    if ( remoteInputSteps != null ) {
+      cleanupRemoteSteps( remoteInputSteps );
     }
-    for ( RemoteStep remoteStep : getRemoteOutputSteps() ) {
+
+    List<RemoteStep> remoteOutputSteps = getRemoteOutputSteps();
+    if ( remoteOutputSteps != null ) {
+      cleanupRemoteSteps( remoteOutputSteps );
+    }
+  }
+
+  static void cleanupRemoteSteps( List<RemoteStep> remoteSteps ) {
+    for ( RemoteStep remoteStep : remoteSteps ) {
       remoteStep.cleanup();
     }
   }
@@ -1665,7 +1674,7 @@ public class BaseStep implements VariableSpace, StepInterface, LoggingObjectInte
     if ( maxPercentErrors > 0
       && getLinesRejected() > 0
       && ( minRowsForMaxErrorPercent <= 0 || getLinesRead() >= minRowsForMaxErrorPercent ) ) {
-      int pct = (int) Math.ceil(100 * (double)getLinesRejected() / getLinesRead()); // additional conversion for PDI-10210
+      int pct = (int) Math.ceil( 100 * (double) getLinesRejected() / getLinesRead() ); // additional conversion for PDI-10210
       if ( pct > maxPercentErrors ) {
         logError( BaseMessages.getString(
           PKG, "BaseStep.Log.MaxPercentageRejectedReached", Integer.toString( pct ), Long
@@ -2435,14 +2444,14 @@ public class BaseStep implements VariableSpace, StepInterface, LoggingObjectInte
   /**
    * This method finds the surrounding steps and rowsets for this base step. This steps keeps it's own list of rowsets
    * (etc.) to prevent it from having to search every time.
-   * 
+   *
    * Note that all rowsets input and output is already created by transformation itself. So
    * in this place we will look and choose which rowsets will be used by this particular step.
-   * 
+   *
    * We will collect all input rowsets and output rowsets so step will be able to read input data,
    * and write to the output.
-   * 
-   * Steps can run in multiple copies, on in partitioned fashion. For this case we should take 
+   *
+   * Steps can run in multiple copies, on in partitioned fashion. For this case we should take
    * in account that in different cases we should take in account one to one, one to many and other cases
    * properly.
    */
@@ -3139,7 +3148,7 @@ public class BaseStep implements VariableSpace, StepInterface, LoggingObjectInte
    * @see java.lang.Object#toString()
    */
   public String toString() {
-    StringBuffer string = new StringBuffer();
+    StringBuilder string = new StringBuilder( 50 );
 
     // If the step runs in a mapping (and as such has a "parent transformation", we are going to print the name of the
     // transformation during logging

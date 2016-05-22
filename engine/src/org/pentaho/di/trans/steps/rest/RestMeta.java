@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2013 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -35,6 +35,8 @@ import org.pentaho.di.core.exception.KettleXMLException;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMeta;
 import org.pentaho.di.core.row.ValueMetaInterface;
+import org.pentaho.di.core.row.value.ValueMetaInteger;
+import org.pentaho.di.core.row.value.ValueMetaString;
 import org.pentaho.di.core.variables.VariableSpace;
 import org.pentaho.di.core.xml.XMLHandler;
 import org.pentaho.di.i18n.BaseMessages;
@@ -104,6 +106,7 @@ public class RestMeta extends BaseStepMeta implements StepMetaInterface {
   private String fieldName;
   private String resultCodeFieldName;
   private String responseTimeFieldName;
+  private String responseHeaderFieldName;
 
   /** proxy **/
   private String proxyHost;
@@ -378,18 +381,13 @@ public class RestMeta extends BaseStepMeta implements StepMetaInterface {
     int nrmatrixparameters = matrixParameterField.length;
 
     retval.allocate( nrheaders, nrparameters, nrmatrixparameters );
-    for ( int i = 0; i < nrheaders; i++ ) {
-      retval.headerField[i] = headerField[i];
-      retval.headerName[i] = headerName[i];
-    }
-    for ( int i = 0; i < nrparameters; i++ ) {
-      retval.parameterField[i] = parameterField[i];
-      retval.parameterName[i] = parameterName[i];
-    }
-    for ( int i = 0; i < nrmatrixparameters; i++ ) {
-      retval.matrixParameterField[i] = matrixParameterField[i];
-      retval.matrixParameterName[i] = matrixParameterName[i];
-    }
+    System.arraycopy( headerField, 0, retval.headerField, 0, nrheaders );
+    System.arraycopy( headerName, 0, retval.headerName, 0, nrheaders );
+    System.arraycopy( parameterField, 0, retval.parameterField, 0, nrparameters );
+    System.arraycopy( parameterName, 0, retval.parameterName, 0, nrparameters );
+    System.arraycopy( matrixParameterField, 0, retval.matrixParameterField, 0, nrmatrixparameters );
+    System.arraycopy( matrixParameterName, 0, retval.matrixParameterName, 0, nrmatrixparameters );
+
     return retval;
   }
 
@@ -415,6 +413,7 @@ public class RestMeta extends BaseStepMeta implements StepMetaInterface {
     this.fieldName = "result";
     this.resultCodeFieldName = "";
     this.responseTimeFieldName = "";
+    this.responseHeaderFieldName = "";
     this.method = HTTP_METHOD_GET;
     this.dynamicMethod = false;
     this.methodFieldName = null;
@@ -428,27 +427,34 @@ public class RestMeta extends BaseStepMeta implements StepMetaInterface {
   public void getFields( RowMetaInterface inputRowMeta, String name, RowMetaInterface[] info, StepMeta nextStep,
     VariableSpace space, Repository repository, IMetaStore metaStore ) throws KettleStepException {
     if ( !Const.isEmpty( fieldName ) ) {
-      ValueMetaInterface v = new ValueMeta( space.environmentSubstitute( fieldName ), ValueMeta.TYPE_STRING );
+      ValueMetaInterface v = new ValueMetaString( space.environmentSubstitute( fieldName ) );
       v.setOrigin( name );
       inputRowMeta.addValueMeta( v );
     }
 
     if ( !Const.isEmpty( resultCodeFieldName ) ) {
       ValueMetaInterface v =
-        new ValueMeta( space.environmentSubstitute( resultCodeFieldName ), ValueMeta.TYPE_INTEGER );
+        new ValueMetaInteger( space.environmentSubstitute( resultCodeFieldName ) );
       v.setOrigin( name );
       inputRowMeta.addValueMeta( v );
     }
     if ( !Const.isEmpty( responseTimeFieldName ) ) {
       ValueMetaInterface v =
-        new ValueMeta( space.environmentSubstitute( responseTimeFieldName ), ValueMeta.TYPE_INTEGER );
+        new ValueMetaInteger( space.environmentSubstitute( responseTimeFieldName ) );
+      v.setOrigin( name );
+      inputRowMeta.addValueMeta( v );
+    }
+    String headerFieldName = space.environmentSubstitute( responseHeaderFieldName );
+    if ( !Const.isEmpty( headerFieldName ) ) {
+      ValueMetaInterface v =
+        new ValueMeta( headerFieldName, ValueMeta.TYPE_STRING );
       v.setOrigin( name );
       inputRowMeta.addValueMeta( v );
     }
   }
 
   public String getXML() {
-    StringBuffer retval = new StringBuffer();
+    StringBuilder retval = new StringBuilder();
     retval.append( "    " ).append( XMLHandler.addTagValue( "applicationType", applicationType ) );
     retval.append( "    " ).append( XMLHandler.addTagValue( "method", method ) );
     retval.append( "    " ).append( XMLHandler.addTagValue( "url", url ) );
@@ -501,6 +507,7 @@ public class RestMeta extends BaseStepMeta implements StepMetaInterface {
     retval.append( "      " ).append( XMLHandler.addTagValue( "name", fieldName ) );
     retval.append( "      " ).append( XMLHandler.addTagValue( "code", resultCodeFieldName ) );
     retval.append( "      " ).append( XMLHandler.addTagValue( "response_time", responseTimeFieldName ) );
+    retval.append( "      " ).append( XMLHandler.addTagValue( "response_header", responseHeaderFieldName ) );
     retval.append( "      </result>" ).append( Const.CR );
 
     return retval.toString();
@@ -555,6 +562,7 @@ public class RestMeta extends BaseStepMeta implements StepMetaInterface {
       fieldName = XMLHandler.getTagValue( stepnode, "result", "name" ); // Optional, can be null
       resultCodeFieldName = XMLHandler.getTagValue( stepnode, "result", "code" ); // Optional, can be null
       responseTimeFieldName = XMLHandler.getTagValue( stepnode, "result", "response_time" ); // Optional, can be null
+      responseHeaderFieldName = XMLHandler.getTagValue( stepnode, "result", "response_header" ); // Optional, can be null
     } catch ( Exception e ) {
       throw new KettleXMLException( BaseMessages.getString( PKG, "RestMeta.Exception.UnableToReadStepInfo" ), e );
     }
@@ -604,6 +612,7 @@ public class RestMeta extends BaseStepMeta implements StepMetaInterface {
       fieldName = rep.getStepAttributeString( id_step, "result_name" );
       resultCodeFieldName = rep.getStepAttributeString( id_step, "result_code" );
       responseTimeFieldName = rep.getStepAttributeString( id_step, "response_time" );
+      responseHeaderFieldName = rep.getStepAttributeString( id_step, "response_header" );
     } catch ( Exception e ) {
       throw new KettleException(
         BaseMessages.getString( PKG, "RestMeta.Exception.UnexpectedErrorReadingStepInfo" ), e );
@@ -648,6 +657,7 @@ public class RestMeta extends BaseStepMeta implements StepMetaInterface {
       rep.saveStepAttribute( id_transformation, id_step, "result_name", fieldName );
       rep.saveStepAttribute( id_transformation, id_step, "result_code", resultCodeFieldName );
       rep.saveStepAttribute( id_transformation, id_step, "response_time", responseTimeFieldName );
+      rep.saveStepAttribute( id_transformation, id_step, "response_header", responseHeaderFieldName );
     } catch ( Exception e ) {
       throw new KettleException( BaseMessages.getString( PKG, "RestMeta.Exception.UnableToSaveStepInfo" )
         + id_step, e );
@@ -880,6 +890,13 @@ public class RestMeta extends BaseStepMeta implements StepMetaInterface {
 
   public void setResponseTimeFieldName( String responseTimeFieldName ) {
     this.responseTimeFieldName = responseTimeFieldName;
+  }
+  public String getResponseHeaderFieldName() {
+    return responseHeaderFieldName;
+  }
+
+  public void setResponseHeaderFieldName( String responseHeaderFieldName ) {
+    this.responseHeaderFieldName = responseHeaderFieldName;
   }
 
   public static boolean isActiveBody( String method ) {

@@ -2,7 +2,7 @@
  *
  * Pentaho Data Integration
  *
- * Copyright (C) 2002-2013 by Pentaho : http://www.pentaho.com
+ * Copyright (C) 2002-2016 by Pentaho : http://www.pentaho.com
  *
  *******************************************************************************
  *
@@ -234,6 +234,7 @@ public class ExcelInputMeta extends BaseStepMeta implements StepMetaInterface {
   private String extensionFieldName;
   private String sizeFieldName;
 
+  @Injection( name = "SPREADSHEET_TYPE" )
   private SpreadSheetType spreadSheetType;
 
   public ExcelInputMeta() {
@@ -407,8 +408,17 @@ public class ExcelInputMeta extends BaseStepMeta implements StepMetaInterface {
 
   /**
    * @return Returns the excludeFileMask.
+   * Deprecated due to typo
    */
+  @Deprecated
   public String[] getExludeFileMask() {
+    return getExcludeFileMask();
+  }
+
+  /**
+   * @return Returns the excludeFileMask.
+   */
+  public String[] getExcludeFileMask() {
     return excludeFileMask;
   }
 
@@ -635,19 +645,15 @@ public class ExcelInputMeta extends BaseStepMeta implements StepMetaInterface {
       retval.field[i] = (ExcelInputField) field[i].clone();
     }
 
-    for ( int i = 0; i < nrfiles; i++ ) {
-      retval.fileName[i] = fileName[i];
-      retval.fileMask[i] = fileMask[i];
-      retval.excludeFileMask[i] = excludeFileMask[i];
-      retval.fileRequired[i] = fileRequired[i];
-      retval.includeSubFolders[i] = includeSubFolders[i];
-    }
+    System.arraycopy( fileName, 0, retval.fileName, 0, nrfiles );
+    System.arraycopy( fileMask, 0, retval.fileMask, 0, nrfiles );
+    System.arraycopy( excludeFileMask, 0, retval.excludeFileMask, 0, nrfiles );
+    System.arraycopy( fileRequired, 0, retval.fileRequired, 0, nrfiles );
+    System.arraycopy( includeSubFolders, 0, retval.includeSubFolders, 0, nrfiles );
 
-    for ( int i = 0; i < nrsheets; i++ ) {
-      retval.sheetName[i] = sheetName[i];
-      retval.startColumn[i] = startColumn[i];
-      retval.startRow[i] = startRow[i];
-    }
+    System.arraycopy( sheetName, 0, retval.sheetName, 0, nrsheets );
+    System.arraycopy( startColumn, 0, retval.startColumn, 0, nrsheets );
+    System.arraycopy( startRow, 0, retval.startRow, 0, nrsheets );
 
     return retval;
   }
@@ -933,7 +939,7 @@ public class ExcelInputMeta extends BaseStepMeta implements StepMetaInterface {
   }
 
   public String getXML() {
-    StringBuffer retval = new StringBuffer( 1024 );
+    StringBuilder retval = new StringBuilder( 1024 );
 
     retval.append( "    " ).append( XMLHandler.addTagValue( "header", startsWithHeader ) );
     retval.append( "    " ).append( XMLHandler.addTagValue( "noempty", ignoreEmptyRows ) );
